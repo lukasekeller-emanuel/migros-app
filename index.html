@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Migros">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#FF6600">
+<title>Migros Einkaufsliste</title>
+<link id="touchIcon" rel="apple-touch-icon">
+<link id="favicon" rel="icon">
+<style>
+  :root{
+    --orange:#FF6600;
+    --orange-dark:#e35a00;
+    --bg:#f4f4f4;
+    --card:#ffffff;
+    --text:#1c1c1c;
+    --muted:#8a8a8a;
+    --border:#e4e4e4;
+    --green:#2e9e4f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding-bottom:calc(96px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    position:sticky;top:0;z-index:30;
+    background:var(--orange);
+    color:#fff;
+    padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+    display:flex;align-items:center;justify-content:space-between;
+    box-shadow:0 2px 6px rgba(0,0,0,.15);
+  }
+  header h1{font-size:20px;margin:0;font-weight:700;display:flex;align-items:center;gap:8px;}
+  header .actions{display:flex;gap:6px;}
+  .iconbtn{
+    background:rgba(255,255,255,.18);border:none;color:#fff;
+    width:40px;height:40px;border-radius:50%;
+    font-size:19px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .iconbtn:active{background:rgba(255,255,255,.32);}
+  main{padding:12px 12px 8px;max-width:640px;margin:0 auto;}
+
+  .progress-wrap{
+    background:var(--card);border-radius:14px;padding:10px 14px;margin-bottom:12px;
+    display:flex;align-items:center;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);
+  }
+  .progress-bar{flex:1;height:8px;background:var(--border);border-radius:6px;overflow:hidden;}
+  .progress-bar > div{height:100%;background:var(--green);transition:width .25s ease;}
+  .progress-label{font-size:13px;color:var(--muted);white-space:nowrap;font-weight:600;}
+
+  .empty-state{
+    text-align:center;padding:60px 20px;color:var(--muted);
+  }
+  .empty-state .big-emoji{font-size:60px;display:block;margin-bottom:14px;}
+  .empty-state p{font-size:16px;line-height:1.5;margin:0 0 20px;}
+
+  .cta-btn{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    width:100%;padding:18px;border:none;border-radius:16px;
+    background:var(--orange);color:#fff;font-size:18px;font-weight:700;
+    box-shadow:0 3px 8px rgba(255,102,0,.35);
+    cursor:pointer;margin-bottom:10px;
+  }
+  .cta-btn:active{background:var(--orange-dark);}
+  .cta-btn.secondary{
+    background:#fff;color:var(--orange);border:2px solid var(--orange);
+    box-shadow:none;
+  }
+  .cta-btn.secondary:active{background:#fff5ec;}
+
+  .aisle{
+    background:var(--card);border-radius:16px;margin-bottom:14px;
+    overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);
+  }
+  .aisle-header{
+    display:flex;align-items:center;gap:10px;
+    padding:12px 16px;background:#fff8f3;border-bottom:1px solid var(--border);
+  }
+  .aisle-header .emoji{font-size:22px;}
+  .aisle-header h2{font-size:16px;margin:0;font-weight:700;flex:1;color:var(--orange-dark);}
+  .aisle-header .count{font-size:13px;color:var(--muted);font-weight:600;}
+
+  .item-row{
+    display:flex;align-items:center;gap:12px;
+    padding:14px 16px;border-bottom:1px solid var(--border);
+    min-height:44px;
+  }
+  .item-row:last-child{border-bottom:none;}
+  .checkbox{
+    width:28px;height:28px;border-radius:50%;border:2.5px solid #c9c9c9;
+    flex:0 0 28px;display:flex;align-items:center;justify-content:center;
+    font-size:16px;color:#fff;cursor:pointer;background:#fff;
+  }
+  .checkbox.checked{background:var(--green);border-color:var(--green);}
+  .item-name{flex:1;font-size:17px;line-height:1.3;word-break:break-word;}
+  .item-name.checked{text-decoration:line-through;color:var(--muted);}
+  .item-cat-tag{
+    font-size:12px;color:var(--muted);background:#f0f0f0;border-radius:8px;
+    padding:2px 8px;cursor:pointer;white-space:nowrap;
+  }
+  .item-del{
+    background:none;border:none;color:#c9c9c9;font-size:20px;cursor:pointer;
+    width:30px;height:30px;flex:0 0 30px;
+  }
+  .item-row.uncat .item-name{font-weight:600;}
+
+  .uncat-banner{
+    background:#fff3e0;color:#a55b00;font-size:13px;padding:10px 16px;
+    border-bottom:1px solid #ffe2b8;
+  }
+
+  .add-item-row{
+    padding:12px 16px;border-top:1px dashed var(--border);
+  }
+  .add-item-row input{
+    width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;
+    font-size:16px;margin-bottom:8px;
+  }
+
+  .bottom-bar{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;
+    background:#fff;border-top:1px solid var(--border);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    display:flex;gap:10px;max-width:640px;margin:0 auto;
+  }
+  .bottom-bar button{
+    flex:1;padding:13px;border-radius:14px;border:none;font-size:15px;font-weight:700;
+    cursor:pointer;
+  }
+  .bottom-bar .btn-photo{background:var(--orange);color:#fff;}
+  .bottom-bar .btn-photo:active{background:var(--orange-dark);}
+  .bottom-bar .btn-plain{background:#f0f0f0;color:var(--text);}
+  .bottom-bar .btn-plain:active{background:#e2e2e2;}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .modal-overlay.center{align-items:center;}
+  .modal{
+    background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:640px;
+    padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+    max-height:80vh;overflow-y:auto;
+  }
+  .modal-overlay.center .modal{border-radius:18px;}
+  .modal h3{margin:0 0 14px;font-size:18px;}
+  .modal label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px;}
+  .modal input[type=text], .modal input[type=password]{
+    width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:16px;
+  }
+  .modal .cat-choice{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    padding:13px 14px;border:1px solid var(--border);border-radius:12px;
+    background:#fff;font-size:16px;margin-bottom:8px;cursor:pointer;
+  }
+  .modal .cat-choice:active{background:#f5f5f5;}
+  .modal-actions{display:flex;gap:10px;margin-top:14px;}
+  .modal-actions button{
+    flex:1;padding:13px;border-radius:12px;border:none;font-size:16px;font-weight:700;cursor:pointer;
+  }
+  .modal-actions .primary{background:var(--orange);color:#fff;}
+  .modal-actions .ghost{background:#f0f0f0;color:var(--text);}
+  .modal small{color:var(--muted);font-size:12.5px;line-height:1.4;display:block;margin-top:10px;}
+  .modal a{color:var(--orange-dark);}
+
+  .loading-overlay{
+    position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:60;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  }
+  .spinner{
+    width:46px;height:46px;border-radius:50%;
+    border:4px solid #f0d9c0;border-top-color:var(--orange);
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-overlay p{font-size:15px;color:var(--text);margin:0;}
+
+  .toast{
+    position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+    background:#222;color:#fff;padding:10px 18px;border-radius:30px;font-size:14px;
+    z-index:70;box-shadow:0 3px 10px rgba(0,0,0,.3);max-width:90%;text-align:center;
+  }
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🛒 Migros Liste</h1>
+  <div class="actions">
+    <button class="iconbtn" id="hideCheckedBtn" title="Erledigte ausblenden">👁️</button>
+    <button class="iconbtn" id="settingsBtn" title="Einstellungen">⚙️</button>
+  </div>
+</header>
+
+<main>
+  <div class="progress-wrap hidden" id="progressWrap">
+    <div class="progress-bar"><div id="progressFill" style="width:0%"></div></div>
+    <div class="progress-label" id="progressLabel">0 / 0</div>
+  </div>
+
+  <div id="emptyState" class="empty-state">
+    <span class="big-emoji">📝</span>
+    <p>Noch keine Liste vorhanden.<br>Fotografiere die handschriftliche Einkaufsliste, um zu starten.</p>
+  </div>
+
+  <div id="listContainer"></div>
+</main>
+
+<div class="bottom-bar">
+  <button class="btn-photo" id="addPhotoBtn">📷 Foto</button>
+  <button class="btn-plain" id="addManualBtn">➕ Artikel</button>
+  <button class="btn-plain" id="clearBtn">🗑️ Leeren</button>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
+
+<!-- Settings modal -->
+<div class="modal-overlay center hidden" id="settingsModal">
+  <div class="modal">
+    <h3>Einstellungen</h3>
+    <label for="apiKeyInput">Anthropic API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-...">
+    <small>
+      Der Key wird ausschliesslich lokal auf diesem Gerät gespeichert (localStorage) und direkt an die Anthropic API gesendet. Er wird nirgendwo sonst übertragen.
+      Einen Key erhältst du auf <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.
+    </small>
+    <div class="modal-actions">
+      <button class="ghost" id="settingsCancel">Abbrechen</button>
+      <button class="primary" id="settingsSave">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manual add modal -->
+<div class="modal-overlay center hidden" id="addModal">
+  <div class="modal">
+    <h3>Artikel hinzufügen</h3>
+    <label for="addNameInput">Artikelname</label>
+    <input type="text" id="addNameInput" placeholder="z.B. Äpfel">
+    <div class="modal-actions">
+      <button class="ghost" id="addCancel">Abbrechen</button>
+      <button class="primary" id="addConfirm">Hinzufügen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category picker modal -->
+<div class="modal-overlay hidden" id="catModal">
+  <div class="modal">
+    <h3>Kategorie wählen</h3>
+    <div id="catChoices"></div>
+    <div class="modal-actions">
+      <button class="ghost" id="catCancel">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay hidden" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p id="loadingText">Foto wird analysiert …</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Configuration ---------- */
+  const AISLES = [
+    "Früchte & Gemüse",
+    "Brot & Backwaren",
+    "Fleisch & Fisch",
+    "Frühstück",
+    "Eier",
+    "Milchprodukte",
+    "Tiefkühl",
+    "Getränke",
+    "Konserven & Trockenware",
+    "Haushalt & Pflege"
+  ];
+  const UNCATEGORIZED = "Nicht zugeordnet";
+  const AISLE_EMOJI = {
+    "Früchte & Gemüse":"🍎",
+    "Brot & Backwaren":"🍞",
+    "Fleisch & Fisch":"🥩",
+    "Frühstück":"🥣",
+    "Eier":"🥚",
+    "Milchprodukte":"🥛",
+    "Tiefkühl":"🧊",
+    "Getränke":"🥤",
+    "Konserven & Trockenware":"🥫",
+    "Haushalt & Pflege":"🧴",
+    [UNCATEGORIZED]:"❓"
+  };
+  const ORDER_LOOKUP = AISLES.reduce((m,a,i)=>{m[a]=i;return m;},{});
+  const MODEL = "claude-sonnet-4-6";
+  const API_URL = "https://api.anthropic.com/v1/messages";
+  const STORAGE_KEY = "migrosListe.items";
+  const APIKEY_KEY = "migrosListe.apiKey";
+  const HIDECHECKED_KEY = "migrosListe.hideChecked";
+
+  const PROMPT = `Du bekommst ein Foto einer handschriftlichen Einkaufsliste. Möglicherweise haben mehrere Familienmitglieder mit unterschiedlicher Handschrift Artikel hinzugefügt.
+
+Lies ALLE Artikel auf der Liste, auch wenn die Handschrift schwer leserlich ist. Mache bei Unsicherheit eine plausible Vermutung basierend auf Kontext (Schweizer Migros-Einkauf, Schweizerdeutsche Begriffe sind möglich, z.B. "Gipfeli", "Pommes", "Glace", "Rüebli").
+
+Ordne danach jeden Artikel genau EINER der folgenden Kategorien zu (exakte Schreibweise verwenden):
+
+1. "Früchte & Gemüse" – frisches Obst, Gemüse, Salat, Kräuter
+2. "Brot & Backwaren" – Brot, Brötchen, Gipfeli, Kuchen, Backzutaten (Mehl gehört zu Konserven & Trockenware)
+3. "Fleisch & Fisch" – frisches/verarbeitetes Fleisch, Wurst, Fisch, Meeresfrüchte
+4. "Frühstück" – NUR trockene Frühstücksprodukte: Cerealien, Müsli, Konfitüre, Honig, Kaffee, Tee. NICHT Milch (gehört zu Milchprodukte).
+5. "Eier" – Eier
+6. "Milchprodukte" – Milch, Joghurt, Käse, Rahm, Butter, Quark, Crème fraîche
+7. "Tiefkühl" – alle Tiefkühlprodukte (TK-Gemüse, Glace, Pizza, Pommes frites tiefgekühlt, etc.)
+8. "Getränke" – Wasser, Säfte, Limonade, Bier, Wein, sonstige alkoholische/alkoholfreie Getränke (NICHT Milch, NICHT Kaffee/Tee als Trockenprodukt)
+9. "Konserven & Trockenware" – Pasta, Reis, Konserven, Öl, Essig, Gewürze, Mehl, Zucker, Snacks, Chips, Süssigkeiten, Backwaren-Zutaten
+10. "Haushalt & Pflege" – Putzmittel, Hygieneartikel, Toilettenpapier, Kosmetik, Waschmittel, sonstige Haushaltsartikel
+
+Falls ein Artikel zu KEINER Kategorie eindeutig passt, setze "category" auf null.
+
+Antworte AUSSCHLIESSLICH mit validem JSON, ohne Markdown-Codeblock, ohne Erklärungen, exakt in diesem Format:
+{"items":[{"name":"Artikelname","category":"Kategoriename oder null"}]}
+
+Behalte Mengenangaben falls vermerkt (z.B. "2 Liter Milch", "500g Hackfleisch"). Schreibe Artikelnamen mit grossem Anfangsbuchstaben.`;
+
+  /* ---------- State ---------- */
+  let items = loadItems(); // [{id, name, category, checked}]
+  let hideChecked = localStorage.getItem(HIDECHECKED_KEY) === "1";
+  let catPickerTargetId = null;
+
+  /* ---------- Elements ---------- */
+  const $ = (id) => document.getElementById(id);
+  const emptyState = $("emptyState");
+  const listContainer = $("listContainer");
+  const progressWrap = $("progressWrap");
+  const progressFill = $("progressFill");
+  const progressLabel = $("progressLabel");
+  const fileInput = $("fileInput");
+  const loadingOverlay = $("loadingOverlay");
+  const loadingText = $("loadingText");
+
+  /* ---------- Persistence ---------- */
+  function loadItems(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveItems(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }
+  function getApiKey(){
+    return localStorage.getItem(APIKEY_KEY) || "";
+  }
+  function setApiKey(key){
+    localStorage.setItem(APIKEY_KEY, key);
+  }
+
+  /* ---------- Rendering ---------- */
+  function render(){
+    listContainer.innerHTML = "";
+    if(items.length === 0){
+      emptyState.classList.remove("hidden");
+      progressWrap.classList.add("hidden");
+      return;
+    }
+    emptyState.classList.add("hidden");
+
+    const total = items.length;
+    const done = items.filter(i=>i.checked).length;
+    progressWrap.classList.remove("hidden");
+    progressFill.style.width = total ? Math.round(done/total*100)+"%" : "0%";
+    progressLabel.textContent = done + " / " + total;
+
+    const groups = {};
+    AISLES.forEach(a=>groups[a]=[]);
+    groups[UNCATEGORIZED] = [];
+    items.forEach(it=>{
+      const cat = (it.category && groups.hasOwnProperty(it.category)) ? it.category : UNCATEGORIZED;
+      groups[cat].push(it);
+    });
+
+    const orderedKeys = AISLES.concat([UNCATEGORIZED]);
+    orderedKeys.forEach(cat=>{
+      let list = groups[cat];
+      if(!list || list.length===0) return;
+      if(hideChecked){
+        list = list.filter(i=>!i.checked);
+        if(list.length===0) return;
+      }
+      listContainer.appendChild(renderAisle(cat, list));
+    });
+  }
+
+  function renderAisle(cat, list){
+    const section = document.createElement("div");
+    section.className = "aisle";
+
+    const header = document.createElement("div");
+    header.className = "aisle-header";
+    const remaining = list.filter(i=>!i.checked).length;
+    header.innerHTML = `<span class="emoji">${AISLE_EMOJI[cat]||"📦"}</span>
+      <h2>${escapeHtml(cat)}</h2>
+      <span class="count">${remaining}/${list.length}</span>`;
+    section.appendChild(header);
+
+    if(cat === UNCATEGORIZED){
+      const banner = document.createElement("div");
+      banner.className = "uncat-banner";
+      banner.textContent = "Diese Artikel konnten nicht automatisch zugeordnet werden. Tippe auf \"Kategorie wählen\", um sie manuell einzuordnen.";
+      section.appendChild(banner);
+    }
+
+    list.forEach(it=>section.appendChild(renderItemRow(it, cat===UNCATEGORIZED)));
+    return section;
+  }
+
+  function renderItemRow(it, isUncat){
+    const row = document.createElement("div");
+    row.className = "item-row" + (isUncat ? " uncat" : "");
+
+    const cb = document.createElement("div");
+    cb.className = "checkbox" + (it.checked ? " checked" : "");
+    cb.textContent = it.checked ? "✓" : "";
+    cb.addEventListener("click", ()=>toggleItem(it.id));
+    row.appendChild(cb);
+
+    const name = document.createElement("div");
+    name.className = "item-name" + (it.checked ? " checked" : "");
+    name.textContent = it.name;
+    name.addEventListener("click", ()=>toggleItem(it.id));
+    row.appendChild(name);
+
+    const tag = document.createElement("div");
+    tag.className = "item-cat-tag";
+    tag.textContent = isUncat ? "Kategorie wählen" : "ändern";
+    tag.addEventListener("click", (e)=>{ e.stopPropagation(); openCatPicker(it.id); });
+    row.appendChild(tag);
+
+    const del = document.createElement("button");
+    del.className = "item-del";
+    del.textContent = "×";
+    del.addEventListener("click", (e)=>{ e.stopPropagation(); deleteItem(it.id); });
+    row.appendChild(del);
+
+    return row;
+  }
+
+  function escapeHtml(s){
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  /* ---------- Item actions ---------- */
+  function toggleItem(id){
+    const it = items.find(i=>i.id===id);
+    if(!it) return;
+    it.checked = !it.checked;
+    saveItems();
+    render();
+  }
+  function deleteItem(id){
+    items = items.filter(i=>i.id!==id);
+    saveItems();
+    render();
+  }
+  function addItem(name, category){
+    const id = Date.now() + "_" + Math.random().toString(36).slice(2,8);
+    items.push({id, name: name.trim(), category: category || null, checked:false});
+    saveItems();
+    render();
+  }
+  function mergeItems(newOnes){
+    const existingNames = new Set(items.map(i=>i.name.trim().toLowerCase()));
+    let added = 0;
+    newOnes.forEach(ni=>{
+      const key = (ni.name||"").trim().toLowerCase();
+      if(!key || existingNames.has(key)) return;
+      existingNames.add(key);
+      items.push({
+        id: Date.now()+"_"+Math.random().toString(36).slice(2,8),
+        name: ni.name.trim(),
+        category: AISLES.includes(ni.category) ? ni.category : null,
+        checked:false
+      });
+      added++;
+    });
+    saveItems();
+    render();
+    return added;
+  }
+
+  /* ---------- Category picker modal ---------- */
+  const catModal = $("catModal");
+  const catChoices = $("catChoices");
+  function openCatPicker(itemId){
+    catPickerTargetId = itemId;
+    catChoices.innerHTML = "";
+    AISLES.forEach(cat=>{
+      const btn = document.createElement("button");
+      btn.className = "cat-choice";
+      btn.innerHTML = `${AISLE_EMOJI[cat]} ${escapeHtml(cat)}`;
+      btn.addEventListener("click", ()=>{
+        const it = items.find(i=>i.id===catPickerTargetId);
+        if(it){ it.category = cat; saveItems(); render(); }
+        catModal.classList.add("hidden");
+      });
+      catChoices.appendChild(btn);
+    });
+    catModal.classList.remove("hidden");
+  }
+  $("catCancel").addEventListener("click", ()=>catModal.classList.add("hidden"));
+  catModal.addEventListener("click", (e)=>{ if(e.target===catModal) catModal.classList.add("hidden"); });
+
+  /* ---------- Settings modal ---------- */
+  const settingsModal = $("settingsModal");
+  $("settingsBtn").addEventListener("click", ()=>{
+    $("apiKeyInput").value = getApiKey();
+    settingsModal.classList.remove("hidden");
+  });
+  $("settingsCancel").addEventListener("click", ()=>settingsModal.classList.add("hidden"));
+  $("settingsSave").addEventListener("click", ()=>{
+    setApiKey($("apiKeyInput").value.trim());
+    settingsModal.classList.add("hidden");
+    showToast("API Key gespeichert.");
+  });
+
+  /* ---------- Manual add modal ---------- */
+  const addModal = $("addModal");
+  $("addManualBtn").addEventListener("click", ()=>{
+    $("addNameInput").value = "";
+    addModal.classList.remove("hidden");
+    setTimeout(()=>$("addNameInput").focus(), 50);
+  });
+  $("addCancel").addEventListener("click", ()=>addModal.classList.add("hidden"));
+  $("addConfirm").addEventListener("click", confirmManualAdd);
+  $("addNameInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") confirmManualAdd(); });
+  function confirmManualAdd(){
+    const name = $("addNameInput").value.trim();
+    if(!name) return;
+    addItem(name, null);
+    addModal.classList.add("hidden");
+  }
+
+  /* ---------- Clear / hide checked ---------- */
+  $("clearBtn").addEventListener("click", ()=>{
+    if(items.length===0) return;
+    if(confirm("Ganze Liste löschen?")){
+      items = [];
+      saveItems();
+      render();
+    }
+  });
+  $("hideCheckedBtn").addEventListener("click", ()=>{
+    hideChecked = !hideChecked;
+    localStorage.setItem(HIDECHECKED_KEY, hideChecked ? "1":"0");
+    $("hideCheckedBtn").style.opacity = hideChecked ? "0.55" : "1";
+    render();
+  });
+  $("hideCheckedBtn").style.opacity = hideChecked ? "0.55" : "1";
+
+  /* ---------- Toast ---------- */
+  let toastTimer = null;
+  function showToast(msg, isError){
+    let el = document.querySelector(".toast");
+    if(el) el.remove();
+    el = document.createElement("div");
+    el.className = "toast";
+    if(isError) el.style.background = "#b3261e";
+    el.textContent = msg;
+    document.body.appendChild(el);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>el.remove(), 4000);
+  }
+
+  /* ---------- Photo capture & Claude API ---------- */
+  $("addPhotoBtn").addEventListener("click", ()=>{
+    if(!getApiKey()){
+      showToast("Bitte zuerst einen API Key in den Einstellungen ⚙️ hinterlegen.", true);
+      settingsModal.classList.remove("hidden");
+      return;
+    }
+    fileInput.click();
+  });
+
+  fileInput.addEventListener("change", async (e)=>{
+    const file = e.target.files[0];
+    fileInput.value = "";
+    if(!file) return;
+    try{
+      setLoading(true, "Foto wird verarbeitet …");
+      const {base64, mediaType} = await resizeImageToBase64(file);
+      setLoading(true, "Claude liest die Liste …");
+      const result = await callClaude(base64, mediaType);
+      const newOnes = (result.items || []).filter(i=>i && i.name);
+      const added = mergeItems(newOnes);
+      setLoading(false);
+      if(newOnes.length===0){
+        showToast("Es konnten keine Artikel erkannt werden.", true);
+      } else {
+        showToast(`${added} Artikel hinzugefügt (${newOnes.length-added} bereits vorhanden).`);
+      }
+    }catch(err){
+      console.error(err);
+      setLoading(false);
+      showToast(err.message || "Fehler beim Verarbeiten des Fotos.", true);
+    }
+  });
+
+  function setLoading(on, text){
+    if(text) loadingText.textContent = text;
+    loadingOverlay.classList.toggle("hidden", !on);
+  }
+
+  function resizeImageToBase64(file){
+    return new Promise((resolve, reject)=>{
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onerror = ()=>reject(new Error("Foto konnte nicht gelesen werden."));
+      reader.onload = ()=>{
+        img.onerror = ()=>reject(new Error("Foto konnte nicht geladen werden."));
+        img.onload = ()=>{
+          const MAX = 1568;
+          let {width, height} = img;
+          if(width > MAX || height > MAX){
+            const scale = MAX / Math.max(width, height);
+            width = Math.round(width*scale);
+            height = Math.round(height*scale);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0,0,width,height);
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          resolve({base64: dataUrl.split(",")[1], mediaType: "image/jpeg"});
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function callClaude(base64Image, mediaType){
+    const apiKey = getApiKey();
+    let resp;
+    try{
+      resp = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true"
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: 3000,
+          messages: [{
+            role: "user",
+            content: [
+              {type:"image", source:{type:"base64", media_type: mediaType, data: base64Image}},
+              {type:"text", text: PROMPT}
+            ]
+          }]
+        })
+      });
+    }catch(networkErr){
+      throw new Error("Netzwerkfehler – keine Verbindung zur Claude API.");
+    }
+
+    if(!resp.ok){
+      let detail = "";
+      try{ const j = await resp.json(); detail = j?.error?.message || ""; }catch(e){}
+      if(resp.status === 401) throw new Error("API Key ungültig. Bitte in den Einstellungen prüfen.");
+      if(resp.status === 429) throw new Error("Zu viele Anfragen / Rate Limit erreicht. Bitte kurz warten.");
+      throw new Error("Claude API Fehler (" + resp.status + "). " + detail);
+    }
+
+    const data = await resp.json();
+    const text = (data.content && data.content[0] && data.content[0].text) || "";
+    let jsonStr = text.trim();
+    jsonStr = jsonStr.replace(/^```json\s*/i, "").replace(/^```\s*/,"").replace(/```\s*$/,"");
+    try{
+      return JSON.parse(jsonStr);
+    }catch(parseErr){
+      const match = jsonStr.match(/\{[\s\S]*\}/);
+      if(match){
+        try{ return JSON.parse(match[0]); }catch(e2){}
+      }
+      throw new Error("Antwort von Claude konnte nicht gelesen werden.");
+    }
+  }
+
+  /* ---------- App icon (generated at runtime, no external files needed) ---------- */
+  function generateIcon(){
+    const canvas = document.createElement("canvas");
+    canvas.width = 180; canvas.height = 180;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#FF6600";
+    ctx.fillRect(0,0,180,180);
+    ctx.font = "110px -apple-system, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🛒", 90, 100);
+    const url = canvas.toDataURL("image/png");
+    $("touchIcon").setAttribute("href", url);
+    $("favicon").setAttribute("href", url);
+  }
+  generateIcon();
+
+  /* ---------- Init ---------- */
+  render();
+})();
+</script>
+</body>
+</html>
