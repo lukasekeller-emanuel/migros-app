@@ -104,6 +104,15 @@
   .checkbox.checked{background:var(--green);border-color:var(--green);}
   .item-name{flex:1;font-size:17px;line-height:1.3;word-break:break-word;}
   .item-name.checked{text-decoration:line-through;color:var(--muted);}
+  .item-name-input{
+    flex:1;font-size:17px;line-height:1.3;padding:6px 8px;
+    border:1.5px solid var(--orange);border-radius:8px;font-family:inherit;min-width:0;
+  }
+  .item-edit-confirm{
+    background:var(--green);border:none;color:#fff;font-size:15px;cursor:pointer;
+    width:30px;height:30px;border-radius:50%;flex:0 0 30px;
+    display:flex;align-items:center;justify-content:center;
+  }
   .item-cat-tag{
     font-size:12px;color:var(--muted);background:#f0f0f0;border-radius:8px;
     padding:2px 8px;cursor:pointer;white-space:nowrap;
@@ -337,6 +346,7 @@ Behalte Mengenangaben falls vermerkt (z.B. "2 Liter Milch", "500g Hackfleisch").
   let items = loadItems(); // [{id, name, category, checked}]
   let hideChecked = localStorage.getItem(HIDECHECKED_KEY) === "1";
   let catPickerTargetId = null;
+  let editingItemId = null;
 
   /* ---------- Elements ---------- */
   const $ = (id) => document.getElementById(id);
@@ -435,23 +445,45 @@ Behalte Mengenangaben falls vermerkt (z.B. "2 Liter Milch", "500g Hackfleisch").
     cb.addEventListener("click", ()=>toggleItem(it.id));
     row.appendChild(cb);
 
-    const name = document.createElement("div");
-    name.className = "item-name" + (it.checked ? " checked" : "");
-    name.textContent = it.name;
-    name.addEventListener("click", ()=>toggleItem(it.id));
-    row.appendChild(name);
+    if(editingItemId === it.id){
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "item-name-input";
+      input.value = it.name;
+      input.addEventListener("keydown", (e)=>{
+        if(e.key === "Enter"){ e.preventDefault(); saveEdit(it.id, input.value); }
+        else if(e.key === "Escape"){ e.preventDefault(); cancelEdit(); }
+      });
+      input.addEventListener("blur", ()=>saveEdit(it.id, input.value));
+      row.appendChild(input);
 
-    const tag = document.createElement("div");
-    tag.className = "item-cat-tag";
-    tag.textContent = isUncat ? "Kategorie wählen" : "ändern";
-    tag.addEventListener("click", (e)=>{ e.stopPropagation(); openCatPicker(it.id); });
-    row.appendChild(tag);
+      const confirm = document.createElement("button");
+      confirm.className = "item-edit-confirm";
+      confirm.textContent = "✓";
+      confirm.addEventListener("mousedown", (e)=>e.preventDefault());
+      confirm.addEventListener("click", (e)=>{ e.stopPropagation(); saveEdit(it.id, input.value); });
+      row.appendChild(confirm);
 
-    const del = document.createElement("button");
-    del.className = "item-del";
-    del.textContent = "×";
-    del.addEventListener("click", (e)=>{ e.stopPropagation(); deleteItem(it.id); });
-    row.appendChild(del);
+      setTimeout(()=>{ input.focus(); input.select(); }, 0);
+    } else {
+      const name = document.createElement("div");
+      name.className = "item-name" + (it.checked ? " checked" : "");
+      name.textContent = it.name;
+      name.addEventListener("click", ()=>startEdit(it.id));
+      row.appendChild(name);
+
+      const tag = document.createElement("div");
+      tag.className = "item-cat-tag";
+      tag.textContent = isUncat ? "Kategorie wählen" : "ändern";
+      tag.addEventListener("click", (e)=>{ e.stopPropagation(); openCatPicker(it.id); });
+      row.appendChild(tag);
+
+      const del = document.createElement("button");
+      del.className = "item-del";
+      del.textContent = "×";
+      del.addEventListener("click", (e)=>{ e.stopPropagation(); deleteItem(it.id); });
+      row.appendChild(del);
+    }
 
     return row;
   }
@@ -473,6 +505,27 @@ Behalte Mengenangaben falls vermerkt (z.B. "2 Liter Milch", "500g Hackfleisch").
   function deleteItem(id){
     items = items.filter(i=>i.id!==id);
     saveItems();
+    render();
+  }
+  function startEdit(id){
+    editingItemId = id;
+    render();
+  }
+  function cancelEdit(){
+    editingItemId = null;
+    render();
+  }
+  function saveEdit(id, rawValue){
+    if(editingItemId !== id) return;
+    editingItemId = null;
+    const value = (rawValue || "").trim();
+    if(value){
+      const it = items.find(i=>i.id===id);
+      if(it && it.name !== value){
+        it.name = value;
+        saveItems();
+      }
+    }
     render();
   }
   function addItem(name, category){
